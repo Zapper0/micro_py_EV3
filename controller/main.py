@@ -14,6 +14,8 @@ ev3 = EV3Brick()
 # Declare motors 
 left_motor = Motor(Port.A)
 right_motor = Motor(Port.D)
+left_arm = Motor(Port.B)
+
 forward = 0
 left = 0
 
@@ -56,6 +58,7 @@ while event:
         if code == 313 and value == 0:
             ev3.screen.clear()
             ev3.screen.draw_text(5, 5, "R2")
+            left_arm.run_angle(100, 360)
             wait(10)
         if code == 312 and value == 0:
             ev3.screen.clear()
@@ -66,7 +69,7 @@ while event:
         if code == 0: 
             left = scale(value, (0,255), (40, -40))
         if code == 1: # Righ stick vertical
-            forward = scale(value, (0,255), (100,-100))
+            forward = scale(value, (0,255), (-100,100))
         
     # Set motor voltages. 
     left_motor.dc(forward + left)
