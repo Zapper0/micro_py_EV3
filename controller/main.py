@@ -14,8 +14,8 @@ ev3 = EV3Brick()
 # Declare motors 
 left_motor = Motor(Port.A)
 right_motor = Motor(Port.D)
-left_arm = Motor(Port.B)
-
+# left_arm = Motor(Port.B)
+# right_arm = Motor(Port.C)
 forward = 0
 left = 0
 
@@ -51,23 +51,36 @@ FORMAT = 'llHHI'
 EVENT_SIZE = struct.calcsize(FORMAT)
 event = in_file.read(EVENT_SIZE)
 
+l_state = 0
+r_state = 0
 while event:
     (tv_sec, tv_usec, ev_type, code, value) = struct.unpack(FORMAT, event)
     
     if ev_type == 1: # A button was pressed or released.
         if code == 313 and value == 0:
-            ev3.screen.clear()
-            ev3.screen.draw_text(5, 5, "R2")
-            left_arm.run_angle(100, 360)
-            wait(10)
+            if(l_state == 0):
+                l_state = 1
+                # left_arm.run_angle(100, 360, Stop.HOLD,False)
+                wait(10)
+            else:
+                l_state = 0
+                # left_arm.run_angle(-100, 360, Stop.HOLD,False)
+                wait(10)
+
         if code == 312 and value == 0:
-            ev3.screen.clear()
-            ev3.screen.draw_text(5, 5, "L2")
-            wait(10)
-        
+            if(r_state == 0):
+                r_state = 1
+                # right_arm.run_angle(100, 360, Stop.HOLD,False)
+                wait(10)
+            else:
+                r_state = 0
+                # right_arm.run_angle(-100, 360, Stop.HOLD,False)
+                wait(10)
+
+
     elif ev_type == 3: # Stick was moved
         if code == 0: 
-            left = scale(value, (0,255), (40, -40))
+            left = scale(value, (0,255), (100, -100))
         if code == 1: # Righ stick vertical
             forward = scale(value, (0,255), (-100,100))
         
