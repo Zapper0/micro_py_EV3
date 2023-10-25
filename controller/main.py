@@ -14,26 +14,19 @@ ev3 = EV3Brick()
 # Declare motors 
 left_motor = Motor(Port.A)
 right_motor = Motor(Port.D)
-# left_arm = Motor(Port.B)
+left_arm = Motor(Port.B)
 # right_arm = Motor(Port.C)
 forward = 0
 left = 0
+arm = 0
 
 
 # A helper function for converting stick values (0 - 255)
 # to more usable numbers (-100 - 100)
 def scale(val, src, dst):
-    """
-    Scale the given value from the scale of src to the scale of dst.
- 
-    val: float or int
-    src: tuple
-    dst: tuple
- 
-    example: print(scale(99, (0.0, 99.0), (-1.0, +1.0)))
-    """
-    return (float(val-src[0]) / (src[1]-src[0])) * (dst[1]-dst[0])+dst[0]
-
+    value = int((float(val-src[0]) / (src[1]-src[0])) * (dst[1]-dst[0])+dst[0])
+    # print(value)
+    return value
 
 # Open the Gamepad event file:
 # /dev/input/event3 is for PS3 gamepad
@@ -57,15 +50,19 @@ while event:
     (tv_sec, tv_usec, ev_type, code, value) = struct.unpack(FORMAT, event)
     
     if ev_type == 1: # A button was pressed or released.
-        if code == 313 and value == 0:
+        if code == 307 and value == 0:
             if(l_state == 0):
                 l_state = 1
+                print('open')
                 # left_arm.run_angle(100, 360, Stop.HOLD,False)
-                wait(10)
+                wait(100)
+                # left_arm.stop()
             else:
                 l_state = 0
+                print('close')
                 # left_arm.run_angle(-100, 360, Stop.HOLD,False)
-                wait(10)
+                wait(100)
+                # left_arm.stop()
 
         if code == 312 and value == 0:
             if(r_state == 0):
@@ -80,15 +77,18 @@ while event:
 
     elif ev_type == 3: # Stick was moved
         if code == 0: 
-            left = scale(value, (0,255), (100, -100))
+            left = scale(value, (0,255), (-100, 100))
         if code == 1: # Righ stick vertical
-            forward = scale(value, (0,255), (-100,100))
-        
+            forward = scale(value, (0,255), (100,-100))
+        if code == 2:
+            arm = scale(value, (0,255), (0,100))
+        if code == 5:
+            arm = scale(value, (0,255), (0,-100))
     # Set motor voltages. 
-    left_motor.dc(forward + left)
-    right_motor.dc(forward - left)
-
-
+    print(code)
+    left_motor.dc(forward - left)
+    right_motor.dc(forward + left)
+    left_arm.dc(arm)
     # Finally, read another event
     event = in_file.read(EVENT_SIZE)
 
