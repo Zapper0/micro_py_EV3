@@ -45,12 +45,6 @@ def scale(val, src, dst):
 
 
 infile_path = "/dev/input/event4"
-
-"""
-FORMAT represents the format used by linux kernel input event struct
-See https://github.com/torvalds/linux/blob/v5.5-rc5/include/uapi/linux/input.h#L28
-Stands for: long int, long int, unsigned short, unsigned short, unsigned int
-"""
 FORMAT = "llHHI"
 EVENT_SIZE = struct.calcsize(FORMAT)
 
@@ -60,30 +54,42 @@ in_file = open(infile_path, "rb")
 event = in_file.read(EVENT_SIZE)
 
 
-lstick = [0, 0]
-rstick = [0, 0]
 
 multiplier = 3
 
 arm_closed = False
 
+commands = {
+    3: [0, 0, 0, 0, 0, 0],
+    1: {
+        304: 6,
+        305: 3,
+        308: 1,
+        312: 0,
+        313: 0,
+        315: 'break',
+    },
+}
 while event:
     (tv_sec, tv_usec, type, code, value) = struct.unpack(FORMAT, event)
 
     if type != 0 or code != 0 or value != 0:
-        
-        if type == 3:
-            if code == 0:
-                lstick[0] = value
-            elif code == 1:
-                lstick[1] = value
-            elif code == 3:
-                rstick[0] = value
-            elif code == 4:
-                rstick[1] = value
+        if type == 1:
+            if code == 315:
+                break
+            else:
+                multiplier = commands[type][code]
+        elif type == 3:
+            commands[type][code] = scale(value, [0, 255], [100, -100])
 
-            x = scale(lstick[0], [0, 255], [-100, 100])
-            y = scale(lstick[1], [0, 255], [100, -100])
+            # print(commands[type])
+
+            x = commands[type][0]
+            y = commands[type][1]
+
+            if code == 2 or code == 5:
+                left_arm.run((commands[type][2] - commands[type][5])*5)
+
 
             lowerSpeed = (y - abs(x))*multiplier
 
@@ -100,33 +106,13 @@ while event:
             if y < 0:
                 leftSpeed = rightSpeed
                 rightSpeed = leftSpeed
-
-            # print("Left: " + str(leftSpeed) + " Right: " + str(rightSpeed) + ' (' + str(x) + ', ' + str(y) + ')' )
-
-            # move motors
+            
             left_motor.run(leftSpeed)
             right_motor.run(rightSpeed)
-            
-            if code == 2:
-                left_arm.run(value*2)
 
-            elif code == 5:
-                left_arm.run(-value*2)
-
-        elif type == 1:
-            if code == 315:
-                break
-            elif code == 304:
-                multiplier = 6
-                # print("Turbo mode activated")
-            elif code == 305:
-                multiplier = 3
-                # print("Turbo mode deactivated")
-            elif code == 308:
-                multiplier = 1
-                # print("Precision mode deactivated")
-            # print("Event type %u, code %u, value %u at %d.%d" % (type, code, value, tv_sec, tv_usec))
         
+
+
     event = in_file.read(EVENT_SIZE)
 
 in_file.close()
